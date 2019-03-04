@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>About &#8212; agentcrypt 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="#" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="agentcrypt 0.1.0 documentation" href="index.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="Welcome to agentcrypt’s documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="about">
+<h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="how-does-it-work">
+<h2>How does it work?<a class="headerlink" href="#how-does-it-work" title="Permalink to this headline">¶</a></h2>
+<p><em>AgentCrypt</em> encrypts or decrypts data with the help of <cite>ssh private key</cite> from an <cite>ssh-agent</cite>.</p>
+<ul class="simple">
+<li>A public random value (<cite>nonce</cite>) is signed with the SSH key (<code class="docutils literal"><span class="pre">SSH_AGENTC_SIGN_REQUEST</span></code>) and then passed along
+with another random value (<cite>salt</cite>) to a key derivation function. This yields a <cite>secret key</cite>.</li>
+<li>The input data is encrypted with a symmetric cipher using the <cite>secret key</cite> from the previous step.</li>
+<li>The cipher-text is stored together with the <cite>nonce</cite> and the <cite>salt</cite>.</li>
+</ul>
+<p>The fact that it is not possible to predict the nonce-signature without access to the private key or the agent
+containing it, ensures that only the owner of the private SSH key can decrypt the data.</p>
+</div>
+<div class="section" id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>The concept is not very future-proof. It only works with RSA keys and only because SSH uses PKCS1 v1.5 padding for
+its signatures (see <a class="reference internal" href="#key-limitations">key limitations</a>).</li>
+<li><em>AgentCrypt</em> cannot encrypt with multiple keys, making it impossible to share an encrypted container
+or encrypt with an additional backup key. It shouldn&#8217;t be hard to implement that, but so far there was no use for it.</li>
+<li>Like all applications that rely on key-agents, <em>AgentCrypt</em> is susceptible to agent hijacking.
+You can make yourself (more or less) immune to that with the key-agent&#8217;s confirmation option <code class="docutils literal"><span class="pre">ssh-add</span> <span class="pre">-c</span> <span class="pre">&lt;key&gt;</span></code>.
+But that comes with the burden of having to type &#8220;<em>yes</em>&#8221; on the local machine, whenever <em>AgentCrypt</em> needs your key.</li>
+</ul>
+<dl class="docutils" id="key-limitations">
+<dt>key limitations</dt>
+<dd><p class="first">Not all signatures are deterministic, i.e. do not result in the same output for the same input. This is, because
+asymmetric encryption and signing needs a random component to be secure. In case of RSA this is called padding (not to
+be confused with block cipher padding).</p>
+<p class="last">SSH uses PKCS#1 v1.5 padding for RSA signatures, which is deterministic. That&#8217;s why RSA keys work for us (RSA-PSS
+wouldn&#8217;t). For signatures with DSA and ECDSA keys there is a deterministic usage described in RFC-6979, but SSH
+doesn&#8217;t implement it, thus these keys don&#8217;t work for us.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="security">
+<span id="id1"></span><h2>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Probably the crunch question: <em>Is the signature a suitable means of deriving a symmetric key?</em></dt>
+<dd><p class="first">The signature can be used as secret, because it cannot be derived without the private key. Deriving the signature
+without the private key would be a successful “<em>signature forgery attack</em>”. If an efficient attack of this kind was
+known, it would probably have made it into the news.</p>
+<p class="last">On the other hand, using the signature as symmetric key, is not a mode of operation you will find in the PKCS#xx
+documents. And the fact that the one value that qualifies as signature cannot be deduced, doesn&#8217;t necessarily mean it
+is impossible to make assumptions about keys made from signatures. In order to make key enumeration expensive, even if
+such assumptions could be made, the signature is fed to PBKDF2  before using it as key.</p>
+</dd>
+<dt>Bottom line:</dt>
+<dd>This kind of encryption can be a convenient shortcut, if the alternative is plaintext storage. It shouldn&#8217;t break on
+the first strike, but as with any home-brewed security implementation, you shouldn&#8217;t use it, if the stakes are high.</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">agentcrypt</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">About</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-does-it-work">How does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#limitations">Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.9</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/about.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>agentcrypt.crypto &#8212; agentcrypt 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="agentcrypt 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="agentcrypt" href="../agentcrypt.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for agentcrypt.crypto</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">raise_from</span>
+
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.backends</span> <span class="k">import</span> <span class="n">default_backend</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives</span> <span class="k">import</span> <span class="n">ciphers</span><span class="p">,</span> <span class="n">hashes</span><span class="p">,</span> <span class="n">padding</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives.ciphers</span> <span class="k">import</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">modes</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives.kdf.pbkdf2</span> <span class="k">import</span> <span class="n">PBKDF2HMAC</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives.kdf.scrypt</span> <span class="k">import</span> <span class="n">Scrypt</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha256</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">paramiko</span>
+<span class="kn">from</span> <span class="nn">paramiko.py3compat</span> <span class="k">import</span> <span class="n">b</span>
+<span class="kn">from</span> <span class="nn">paramiko</span> <span class="k">import</span> <span class="n">SSHException</span>  <span class="c1"># Cannot catch as paramiko.SSHException or raise_from will fail in PY3.</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">AgentCryptException</span>
+<span class="kn">from</span> <span class="nn">agentcrypt.py2compat</span> <span class="k">import</span> <span class="n">try_bytes</span>
+
+
+<div class="viewcode-block" id="AgentKey"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.AgentKey">[docs]</a><span class="k">class</span> <span class="nc">AgentKey</span><span class="p">(</span><span class="n">paramiko</span><span class="o">.</span><span class="n">AgentKey</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Specialization of `paramiko.agent.AgentKey`_ with a few additions for our purposes.</span>
+
+<span class="sd">    .. _`paramiko.agent.AgentKey`: http://docs.paramiko.org/en/2.4/api/agent.html#paramiko.agent.AgentKey</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">agent_key</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AgentKey</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">agent_key</span><span class="o">.</span><span class="n">asbytes</span><span class="p">())</span>
+
+<div class="viewcode-block" id="AgentKey.get_sha256_fingerprint"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.AgentKey.get_sha256_fingerprint">[docs]</a>    <span class="k">def</span> <span class="nf">get_sha256_fingerprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SHA256 fingerprint extension from `pull request 1103`_.</span>
+
+<span class="sd">        .. _`pull request 1103`: https://github.com/paramiko/paramiko/pull/1103/commits/8e0b7ef85fc72d844dee80688060001a3fba8ad0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="n">sha256</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asbytes</span><span class="p">())</span><span class="o">.</span><span class="n">digest</span><span class="p">()))[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="AgentKey.get_ssh_signature_blob"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.AgentKey.get_ssh_signature_blob">[docs]</a>    <span class="k">def</span> <span class="nf">get_ssh_signature_blob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Signs ``data`` and returns the signature as `bytes`.</span>
+
+<span class="sd">        :param data: The `bytes` object to be signed.</span>
+<span class="sd">        :return: The signature part of the resulting `SSH_AGENT_SIGN_RESPONSE` message as described in the RFCs</span>
+<span class="sd">                 referenced by the `SSH Agent Protocol draft`_.</span>
+
+<span class="sd">        .. _`SSH Agent Protocol draft`: https://tools.ietf.org/id/draft-miller-ssh-agent-00.html#rfc.section.4.5.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sig_msg</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AgentKey</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">sign_ssh_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">SSHException</span> <span class="k">as</span> <span class="n">sshe</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Failed access key &#39;</span><span class="si">{}</span><span class="s2">&#39;. You probably added it with the confirmation option &quot;</span>
+                                           <span class="s2">&quot;(ssh-add -c ..) and did not confirm. (Did you install &#39;ssh-askpass&#39;?)&quot;</span>
+                                           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_sha256_fingerprint</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())),</span> <span class="n">sshe</span><span class="p">)</span>
+
+        <span class="n">msg_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">loop</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">plen</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;I&#39;</span><span class="p">,</span> <span class="n">sig_msg</span><span class="p">[:</span><span class="mi">4</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">msg_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sig_msg</span><span class="p">[</span><span class="mi">4</span><span class="p">:(</span><span class="n">plen</span><span class="o">+</span><span class="mi">4</span><span class="p">)])</span>
+                <span class="n">sig_msg</span> <span class="o">=</span> <span class="n">sig_msg</span><span class="p">[(</span><span class="n">plen</span><span class="o">+</span><span class="mi">4</span><span class="p">):]</span>
+        <span class="k">except</span> <span class="n">struct</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">se</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Failed to unpack SSH_AGENT_SIGN_RESPONSE from agent.&quot;</span><span class="p">),</span> <span class="n">se</span><span class="p">)</span>
+
+        <span class="c1"># Some sanity checks on the signature message.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msg_parts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Got unexpected SSH_AGENT_SIGN_RESPONSE message from agent &quot;</span>
+                                      <span class="s2">&quot;(</span><span class="si">{:d}</span><span class="s2"> message parts instead of 2).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">msg_parts</span><span class="p">)))</span>
+
+        <span class="n">sig_format</span> <span class="o">=</span> <span class="p">(</span><span class="n">msg_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+        <span class="n">sig_blob</span> <span class="o">=</span> <span class="n">msg_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">sig_format</span> <span class="o">!=</span> <span class="s2">&quot;ssh-rsa&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Got &#39;</span><span class="si">{}</span><span class="s2">&#39; in SSH_AGENT_SIGN_RESPONSE from agent, but only &#39;ssh-rsa&#39; is supported&quot;</span>
+                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sig_format</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">sig_blob</span></div></div>
+
+
+<div class="viewcode-block" id="SSHAgent"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.SSHAgent">[docs]</a><span class="k">class</span> <span class="nc">SSHAgent</span><span class="p">(</span><span class="n">paramiko</span><span class="o">.</span><span class="n">Agent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Specialization of `paramiko.agent.Agent`_ which uses :class:`crypto.AgentKey` objects internally.</span>
+
+<span class="sd">    .. _`paramiko.agent.Agent`: http://docs.paramiko.org/en/2.4/api/agent.html#paramiko.agent.Agent</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__instance</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">SSHAgent</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ac_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="n">AgentKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="nb">super</span><span class="p">(</span><span class="n">SSHAgent</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_keys</span><span class="p">()))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac_keys</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;No keys found in SSH agent.&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">SSHException</span> <span class="k">as</span> <span class="n">sshe</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Failed to connect to SSH agent.&quot;</span><span class="p">),</span> <span class="n">sshe</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SSHAgent</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  <span class="c1"># No other reasonable way than __del__(), to ensure close() is called.</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="SSHAgent.get_key"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.SSHAgent.get_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_key</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key_fp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Searches for the specified key in the agent. Creates a new instance of :class:`SSHAgent`, if necessary</span>
+<span class="sd">        (singleton logic).</span>
+
+<span class="sd">        :param key_fp: The SHA256 fingerprint of the key to search for. If ``None``, the first key is returned.</span>
+<span class="sd">        :return: :class:`crypto.AgentKey` instance, if a key was found, or ``None`` if nothing was found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__instance</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__instance</span> <span class="o">=</span> <span class="n">SSHAgent</span><span class="p">()</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__instance</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ac_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">key_fp</span> <span class="ow">or</span> <span class="n">key</span><span class="o">.</span><span class="n">get_sha256_fingerprint</span><span class="p">()</span> <span class="o">==</span> <span class="n">try_bytes</span><span class="p">(</span><span class="n">key_fp</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">key</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="Cipher"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.Cipher">[docs]</a><span class="k">class</span> <span class="nc">Cipher</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Provides symmetric encryption with the help of the `pyca/cryptography`_ library.</span>
+
+<span class="sd">    .. _`pyca/cryptography`: https://cryptography.io</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># As a loose convention `len` is the name for the length in bytes and `size` for the size in bits in this class.</span>
+    <span class="n">NONCE_LEN</span> <span class="o">=</span> <span class="mi">64</span>
+    <span class="n">SALT_LEN</span> <span class="o">=</span> <span class="mi">16</span>
+
+    <span class="n">AES_256_CBC</span> <span class="o">=</span> <span class="s2">&quot;AES_256_CBC&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Cipher name. &quot;&quot;&quot;</span>
+    <span class="n">AES_128_CBC</span> <span class="o">=</span> <span class="s2">&quot;AES_128_CBC&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Cipher name. &quot;&quot;&quot;</span>
+    <span class="n">DES_EDE3_CBC</span> <span class="o">=</span> <span class="s2">&quot;DES_EDE3_CBC&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Cipher name. &quot;&quot;&quot;</span>
+    <span class="n">Blowfish_CBC</span> <span class="o">=</span> <span class="s2">&quot;Blowfish_CBC&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Cipher name. &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Cipher.__init__"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.Cipher.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cipher_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a new instance that uses the selected cipher.</span>
+
+<span class="sd">        :param cipher_name: One of the cipher names exported by the static members above.</span>
+<span class="sd">        :return: :class:`crypto.Cipher` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cipher_name</span> <span class="o">=</span> <span class="n">cipher_name</span> <span class="k">if</span> <span class="n">cipher_name</span> <span class="k">else</span> <span class="n">Cipher</span><span class="o">.</span><span class="n">AES_256_CBC</span>
+        <span class="k">if</span> <span class="n">cipher_name</span> <span class="o">==</span> <span class="n">Cipher</span><span class="o">.</span><span class="n">AES_256_CBC</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">AES</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">AES</span><span class="o">.</span><span class="n">block_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span> <span class="o">=</span> <span class="mi">256</span>
+        <span class="c1"># Ciphers for converting legacy containers only. New ones should always be created as AES_256_CBC.</span>
+        <span class="k">elif</span> <span class="n">cipher_name</span> <span class="o">==</span> <span class="n">Cipher</span><span class="o">.</span><span class="n">AES_128_CBC</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">AES</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">AES</span><span class="o">.</span><span class="n">block_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span> <span class="o">=</span> <span class="mi">128</span>
+        <span class="k">elif</span> <span class="n">cipher_name</span> <span class="o">==</span> <span class="n">Cipher</span><span class="o">.</span><span class="n">DES_EDE3_CBC</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">TripleDES</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">TripleDES</span><span class="o">.</span><span class="n">block_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span> <span class="o">=</span> <span class="mi">192</span>
+        <span class="k">elif</span> <span class="n">cipher_name</span> <span class="o">==</span> <span class="n">Cipher</span><span class="o">.</span><span class="n">Blowfish_CBC</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">Blowfish</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">Blowfish</span><span class="o">.</span><span class="n">block_size</span>
+            <span class="c1"># Up to 448, but 128 were chosen one day, because it&#39;s considered strong and makes it testable with OpenSSL.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span> <span class="o">=</span> <span class="mi">128</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Unsupported cipher &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cipher_name</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cipher_name</span> <span class="o">=</span> <span class="n">cipher_name</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">get_nonce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Convenience method to get a nonce with the preferred length.</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="n">Cipher</span><span class="o">.</span><span class="n">NONCE_LEN</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">get_salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Convenience method to get a salt with the preferred length.</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="n">Cipher</span><span class="o">.</span><span class="n">SALT_LEN</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Cipher.get_kdf"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.Cipher.get_kdf">[docs]</a>    <span class="k">def</span> <span class="nf">get_kdf</span><span class="p">(</span><span class="n">salt</span><span class="p">,</span> <span class="n">key_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the preferred Key Derivation Function (KDF) to be used for deriving the secret key from the signature</span>
+<span class="sd">        returned by :func:`AgentKey.get_ssh_signature_blob`.</span>
+
+<span class="sd">        :return: `PBKDF2HMAC`_ instance.</span>
+
+<span class="sd">        This is the place to put another KDF, if preferred. An SCrypt example is provided in the code.</span>
+<span class="sd">        BCrypt would add dependencies, that&#39;s why there is no code for it, but it can be added quiet simply.</span>
+
+<span class="sd">        .. _`PBKDF2HMAC`: https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#return Scrypt(salt=salt, length=key_size // 8, n=2**14, r=8, p=1, backend=default_backend())</span>
+        <span class="k">return</span> <span class="n">PBKDF2HMAC</span><span class="p">(</span>
+            <span class="n">algorithm</span><span class="o">=</span><span class="n">hashes</span><span class="o">.</span><span class="n">SHA256</span><span class="p">(),</span> <span class="n">salt</span><span class="o">=</span><span class="n">salt</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">key_size</span> <span class="o">//</span> <span class="mi">8</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">default_backend</span><span class="p">()</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cipher.encrypt"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.Cipher.encrypt">[docs]</a>    <span class="k">def</span> <span class="nf">encrypt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encrypt data.</span>
+
+<span class="sd">        :param data: Cleartext data to encrypt.</span>
+<span class="sd">        :param password: The password (will be fed to the KDF in use).</span>
+<span class="sd">        :param salt: The salt (will be fed to the KDF in use).</span>
+<span class="sd">        :return: `bytes` object with encrypted data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">try_bytes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">kdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_kdf</span><span class="p">(</span><span class="n">salt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">kdf</span><span class="o">.</span><span class="n">derive</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+        <span class="n">iv</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">//</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="n">encryptor</span> <span class="o">=</span> <span class="p">(</span><span class="n">ciphers</span><span class="o">.</span><span class="n">Cipher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">modes</span><span class="o">.</span><span class="n">CBC</span><span class="p">(</span><span class="n">iv</span><span class="p">),</span> <span class="n">backend</span><span class="o">=</span><span class="n">default_backend</span><span class="p">()))</span><span class="o">.</span><span class="n">encryptor</span><span class="p">()</span>
+
+        <span class="n">padder</span> <span class="o">=</span> <span class="n">padding</span><span class="o">.</span><span class="n">PKCS7</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_size</span><span class="p">)</span><span class="o">.</span><span class="n">padder</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">padder</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="n">padder</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">iv</span> <span class="o">+</span> <span class="n">encryptor</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="n">encryptor</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Cipher.decrypt"><a class="viewcode-back" href="../../api.html#agentcrypt.crypto.Cipher.decrypt">[docs]</a>    <span class="k">def</span> <span class="nf">decrypt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_enc</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">salt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decrypt data.</span>
+
+<span class="sd">        :param data: `bytes` object with encrypted data.</span>
+<span class="sd">        :param password: The password (will be fed to the KDF in use).</span>
+<span class="sd">        :param salt: The salt (will be fed to the KDF in use).</span>
+<span class="sd">        :return: `bytes` object with cleartext data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_kdf</span><span class="p">(</span><span class="n">salt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_size</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">kdf</span><span class="o">.</span><span class="n">derive</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+        <span class="n">iv_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">//</span> <span class="mi">8</span>
+        <span class="n">iv</span> <span class="o">=</span> <span class="n">data_enc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">iv_bytes</span><span class="p">]</span>
+        <span class="n">data_enc</span> <span class="o">=</span> <span class="n">data_enc</span><span class="p">[</span><span class="n">iv_bytes</span><span class="p">:]</span>
+
+        <span class="n">unpadder</span> <span class="o">=</span> <span class="n">padding</span><span class="o">.</span><span class="n">PKCS7</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_size</span><span class="p">)</span><span class="o">.</span><span class="n">unpadder</span><span class="p">()</span>
+        <span class="n">decryptor</span> <span class="o">=</span> <span class="p">(</span><span class="n">ciphers</span><span class="o">.</span><span class="n">Cipher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">modes</span><span class="o">.</span><span class="n">CBC</span><span class="p">(</span><span class="n">iv</span><span class="p">),</span> <span class="n">backend</span><span class="o">=</span><span class="n">default_backend</span><span class="p">()))</span><span class="o">.</span><span class="n">decryptor</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">decryptor</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data_enc</span><span class="p">)</span> <span class="o">+</span> <span class="n">decryptor</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">unpadder</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="n">unpadder</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="c1"># No padding oracle scenario in our usecase, but probably a good habit not to raise with root cause.</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Decryption failed.&quot;</span><span class="p">),</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;*redacted*&quot;</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">agentcrypt</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.9</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

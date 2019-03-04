@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API &#8212; agentcrypt 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="agentcrypt 0.1.0 documentation" href="index.html" />
+    <link rel="prev" title="About" href="about.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-agentcrypt">
+<span id="agentcrypt"></span><h2>agentcrypt<a class="headerlink" href="#module-agentcrypt" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="agentcrypt.AgentCryptException">
+<em class="property">exception </em><code class="descclassname">agentcrypt.</code><code class="descname">AgentCryptException</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt.html#AgentCryptException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.AgentCryptException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></code></p>
+<p>Any error condition within the library is indicated by raising <cite>AgentCryptException</cite>.</p>
+<p>Additional information about the root cause can be obtained by inspecting the <code class="docutils literal"><span class="pre">__cause__</span></code> attribute set by
+<a class="reference external" href="https://docs.python.org/3/reference/simple_stmts.html#raise">raise from</a>.  If anything else than <cite>AgentCryptException</cite> is raised by an agentcrypt module, either a library is
+missing or it is probably a bug.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="agentcrypt.NoContainerException">
+<em class="property">exception </em><code class="descclassname">agentcrypt.</code><code class="descname">NoContainerException</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt.html#NoContainerException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.NoContainerException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#agentcrypt.AgentCryptException" title="agentcrypt.AgentCryptException"><code class="xref py py-class docutils literal"><span class="pre">agentcrypt.AgentCryptException</span></code></a></p>
+<p>Sub class of <cite>AgentCryptException</cite> that is raised, when an existing container cannot be loaded.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-agentcrypt.io">
+<span id="agentcrypt-io"></span><h2>agentcrypt.io<a class="headerlink" href="#module-agentcrypt.io" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="agentcrypt.io.Container">
+<em class="property">class </em><code class="descclassname">agentcrypt.io.</code><code class="descname">Container</code><span class="sig-paren">(</span><em>io_handle</em>, <em>ssh_key</em>, <em>cipher</em>, <em>nonce</em>, <em>salt</em>, <em>data=None</em>, <em>create_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">_io.BytesIO</span></code></p>
+<p>The public interface for encrypting and decrypting data.
+<a class="reference internal" href="#agentcrypt.io.Container" title="agentcrypt.io.Container"><code class="xref py py-class docutils literal"><span class="pre">Container</span></code></a> objects represent files or streams of encrypted data.
+Instances of this class should be created with the help of the following static methods</p>
+<ul class="simple">
+<li><a class="reference internal" href="#agentcrypt.io.Container.create" title="agentcrypt.io.Container.create"><code class="xref py py-func docutils literal"><span class="pre">create()</span></code></a>: Store encrypted data in a new container.</li>
+<li><a class="reference internal" href="#agentcrypt.io.Container.load" title="agentcrypt.io.Container.load"><code class="xref py py-func docutils literal"><span class="pre">load()</span></code></a>: Load or modify an existing container.</li>
+</ul>
+<p><a class="reference internal" href="#agentcrypt.io.Container" title="agentcrypt.io.Container"><code class="xref py py-class docutils literal"><span class="pre">Container</span></code></a> inherits from <code class="xref py py-class docutils literal"><span class="pre">io.BytesIO</span></code>, thus it can be used as a stream.
+Use the inherited methode <code class="xref py py-func docutils literal"><span class="pre">getvalue()</span></code> to access the contained data in decrypted form.</p>
+<dl class="classmethod">
+<dt id="agentcrypt.io.Container.create">
+<em class="property">classmethod </em><code class="descname">create</code><span class="sig-paren">(</span><em>write_target</em>, <em>ssh_key_fp=None</em>, <em>cipher_name=None</em>, <em>data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>write_target</strong> &#8211; Either a filehandle or a path to the target container as string.
+If an instance of <code class="xref py py-class docutils literal"><span class="pre">io.IOBase</span></code> is detected (<cite>file</cite> instance in Python2) the parameter
+will be treated as handle. Otherwise it is interpreted as path and used as the first
+parameter to <code class="docutils literal"><span class="pre">open()</span></code>, to get a filehandle.</li>
+<li><strong>ssh_key_fp</strong> &#8211; The SHA256 fingerprint of the key to use for encryption. If set to <code class="docutils literal"><span class="pre">None</span></code>, the first key
+found in the key-agent is used (use <code class="docutils literal"><span class="pre">ssh-add</span> <span class="pre">-l</span> <span class="pre">-E</span> <span class="pre">sha256</span></code> to get valid fingerprints).</li>
+<li><strong>cipher_name</strong> &#8211; The symmetric cipher to use. Must be one of the values from the cipher names published by
+<a class="reference internal" href="#agentcrypt.crypto.Cipher" title="agentcrypt.crypto.Cipher"><code class="xref py py-class docutils literal"><span class="pre">crypto.Cipher</span></code></a>. Use <cite>None</cite> to pick the strongest available cipher.</li>
+<li><strong>data</strong> &#8211; The initial data to write to the container. Additional data can be added with <code class="xref py py-func docutils literal"><span class="pre">write()</span></code> or
+<code class="xref py py-func docutils literal"><span class="pre">writelines()</span></code> after the container has been created.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#agentcrypt.io.Container" title="agentcrypt.io.Container"><code class="xref py py-class docutils literal"><span class="pre">Container</span></code></a> instance</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="agentcrypt.io.Container.load">
+<em class="property">classmethod </em><code class="descname">load</code><span class="sig-paren">(</span><em>rw_target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads an existing container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rw_target</strong> &#8211; A path (string) or a filehandle (<code class="xref py py-class docutils literal"><span class="pre">io.IOBase</span></code> in Python3, <cite>file</cite> instance in Python2)
+to load from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="#agentcrypt.io.Container" title="agentcrypt.io.Container"><code class="xref py py-class docutils literal"><span class="pre">Container</span></code></a> instance</td>
+</tr>
+</tbody>
+</table>
+<p>Use the inherited methode <code class="xref py py-func docutils literal"><span class="pre">getvalue()</span></code> to access the contained data in decrypted form.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.io.Container.save">
+<code class="descname">save</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <cite>close()</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.io.Container.rekey">
+<code class="descname">rekey</code><span class="sig-paren">(</span><em>cipher_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.rekey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.rekey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new nonce, optionally with a different cipher an marks the container as <cite>modified</cite>, so that it will be
+written, when <a class="reference internal" href="#agentcrypt.io.Container.flush" title="agentcrypt.io.Container.flush"><code class="xref py py-func docutils literal"><span class="pre">flush()</span></code></a> is called.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.io.Container.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the container if it was modified.
+The container is modified, if either..</p>
+<ul class="simple">
+<li>It was instantiated with the <a class="reference internal" href="#agentcrypt.io.Container.create" title="agentcrypt.io.Container.create"><code class="xref py py-func docutils literal"><span class="pre">create()</span></code></a> method and a <code class="docutils literal"><span class="pre">data</span></code> parameter that was not empty.</li>
+<li>Any of the methods has been called, that modify the content (<code class="xref py py-func docutils literal"><span class="pre">write()</span></code>, <a class="reference internal" href="#agentcrypt.io.Container.rekey" title="agentcrypt.io.Container.rekey"><code class="xref py py-func docutils literal"><span class="pre">rekey()</span></code></a>, <a class="reference internal" href="#agentcrypt.io.Container.clear" title="agentcrypt.io.Container.clear"><code class="xref py py-func docutils literal"><span class="pre">clear()</span></code></a>, ..).</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.io.Container.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the container, if it was modified and closes it.
+There is a cleanup logic, that will delete empty containers, if all of the following conditions hold true:</p>
+<ul class="simple">
+<li>The container is new and empty (method <a class="reference internal" href="#agentcrypt.io.Container.create" title="agentcrypt.io.Container.create"><code class="xref py py-func docutils literal"><span class="pre">create()</span></code></a> was called with empty <code class="docutils literal"><span class="pre">data</span></code> parameter).</li>
+<li>A new file was created for it (parameter <code class="docutils literal"><span class="pre">write_target</span></code> was not an existing filehandle).</li>
+<li>The container has not been modified since it was created.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.io.Container.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/io.html#Container.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.io.Container.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience method for clearing the container contents. Same as <code class="docutils literal"><span class="pre">truncate(0)</span></code> and <code class="docutils literal"><span class="pre">seek(0)</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-agentcrypt.crypto">
+<span id="agentcrypt-crypto"></span><h2>agentcrypt.crypto<a class="headerlink" href="#module-agentcrypt.crypto" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="agentcrypt.crypto.AgentKey">
+<em class="property">class </em><code class="descclassname">agentcrypt.crypto.</code><code class="descname">AgentKey</code><span class="sig-paren">(</span><em>agent</em>, <em>agent_key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#AgentKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.AgentKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">paramiko.agent.AgentKey</span></code></p>
+<p>Specialization of <a class="reference external" href="http://docs.paramiko.org/en/2.4/api/agent.html#paramiko.agent.AgentKey">paramiko.agent.AgentKey</a> with a few additions for our purposes.</p>
+<dl class="method">
+<dt id="agentcrypt.crypto.AgentKey.get_sha256_fingerprint">
+<code class="descname">get_sha256_fingerprint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#AgentKey.get_sha256_fingerprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.AgentKey.get_sha256_fingerprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>SHA256 fingerprint extension from <a class="reference external" href="https://github.com/paramiko/paramiko/pull/1103/commits/8e0b7ef85fc72d844dee80688060001a3fba8ad0">pull request 1103</a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.crypto.AgentKey.get_ssh_signature_blob">
+<code class="descname">get_ssh_signature_blob</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#AgentKey.get_ssh_signature_blob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.AgentKey.get_ssh_signature_blob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Signs <code class="docutils literal"><span class="pre">data</span></code> and returns the signature as <cite>bytes</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> &#8211; The <cite>bytes</cite> object to be signed.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The signature part of the resulting <cite>SSH_AGENT_SIGN_RESPONSE</cite> message as described in the RFCs
+referenced by the <a class="reference external" href="https://tools.ietf.org/id/draft-miller-ssh-agent-00.html#rfc.section.4.5.">SSH Agent Protocol draft</a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="agentcrypt.crypto.SSHAgent">
+<em class="property">class </em><code class="descclassname">agentcrypt.crypto.</code><code class="descname">SSHAgent</code><a class="reference internal" href="_modules/agentcrypt/crypto.html#SSHAgent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.SSHAgent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">paramiko.agent.Agent</span></code></p>
+<p>Specialization of <a class="reference external" href="http://docs.paramiko.org/en/2.4/api/agent.html#paramiko.agent.Agent">paramiko.agent.Agent</a> which uses <code class="xref py py-class docutils literal"><span class="pre">crypto.AgentKey</span></code> objects internally.</p>
+<dl class="classmethod">
+<dt id="agentcrypt.crypto.SSHAgent.get_key">
+<em class="property">classmethod </em><code class="descname">get_key</code><span class="sig-paren">(</span><em>key_fp=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#SSHAgent.get_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.SSHAgent.get_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Searches for the specified key in the agent. Creates a new instance of <a class="reference internal" href="#agentcrypt.crypto.SSHAgent" title="agentcrypt.crypto.SSHAgent"><code class="xref py py-class docutils literal"><span class="pre">SSHAgent</span></code></a>, if necessary
+(singleton logic).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key_fp</strong> &#8211; The SHA256 fingerprint of the key to search for. If <code class="docutils literal"><span class="pre">None</span></code>, the first key is returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><code class="xref py py-class docutils literal"><span class="pre">crypto.AgentKey</span></code> instance, if a key was found, or <code class="docutils literal"><span class="pre">None</span></code> if nothing was found.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="agentcrypt.crypto.Cipher">
+<em class="property">class </em><code class="descclassname">agentcrypt.crypto.</code><code class="descname">Cipher</code><span class="sig-paren">(</span><em>cipher_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#Cipher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.Cipher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Provides symmetric encryption with the help of the <a class="reference external" href="https://cryptography.io">pyca/cryptography</a> library.</p>
+<dl class="attribute">
+<dt id="agentcrypt.crypto.Cipher.AES_256_CBC">
+<code class="descname">AES_256_CBC</code><em class="property"> = 'AES_256_CBC'</em><a class="headerlink" href="#agentcrypt.crypto.Cipher.AES_256_CBC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cipher name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="agentcrypt.crypto.Cipher.AES_128_CBC">
+<code class="descname">AES_128_CBC</code><em class="property"> = 'AES_128_CBC'</em><a class="headerlink" href="#agentcrypt.crypto.Cipher.AES_128_CBC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cipher name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="agentcrypt.crypto.Cipher.DES_EDE3_CBC">
+<code class="descname">DES_EDE3_CBC</code><em class="property"> = 'DES_EDE3_CBC'</em><a class="headerlink" href="#agentcrypt.crypto.Cipher.DES_EDE3_CBC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cipher name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="agentcrypt.crypto.Cipher.Blowfish_CBC">
+<code class="descname">Blowfish_CBC</code><em class="property"> = 'Blowfish_CBC'</em><a class="headerlink" href="#agentcrypt.crypto.Cipher.Blowfish_CBC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cipher name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.crypto.Cipher.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>cipher_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#Cipher.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.Cipher.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new instance that uses the selected cipher.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cipher_name</strong> &#8211; One of the cipher names exported by the static members above.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><code class="xref py py-class docutils literal"><span class="pre">crypto.Cipher</span></code> instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="agentcrypt.crypto.Cipher.get_kdf">
+<em class="property">static </em><code class="descname">get_kdf</code><span class="sig-paren">(</span><em>salt</em>, <em>key_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#Cipher.get_kdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.Cipher.get_kdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the preferred Key Derivation Function (KDF) to be used for deriving the secret key from the signature
+returned by <a class="reference internal" href="#agentcrypt.crypto.AgentKey.get_ssh_signature_blob" title="agentcrypt.crypto.AgentKey.get_ssh_signature_blob"><code class="xref py py-func docutils literal"><span class="pre">AgentKey.get_ssh_signature_blob()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference external" href="https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC">PBKDF2HMAC</a> instance.</td>
+</tr>
+</tbody>
+</table>
+<p>This is the place to put another KDF, if preferred. An SCrypt example is provided in the code.
+BCrypt would add dependencies, that&#8217;s why there is no code for it, but it can be added quiet simply.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.crypto.Cipher.encrypt">
+<code class="descname">encrypt</code><span class="sig-paren">(</span><em>data</em>, <em>password</em>, <em>salt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#Cipher.encrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.Cipher.encrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypt data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; Cleartext data to encrypt.</li>
+<li><strong>password</strong> &#8211; The password (will be fed to the KDF in use).</li>
+<li><strong>salt</strong> &#8211; The salt (will be fed to the KDF in use).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><cite>bytes</cite> object with encrypted data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="agentcrypt.crypto.Cipher.decrypt">
+<code class="descname">decrypt</code><span class="sig-paren">(</span><em>data_enc</em>, <em>password</em>, <em>salt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentcrypt/crypto.html#Cipher.decrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#agentcrypt.crypto.Cipher.decrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decrypt data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; <cite>bytes</cite> object with encrypted data.</li>
+<li><strong>password</strong> &#8211; The password (will be fed to the KDF in use).</li>
+<li><strong>salt</strong> &#8211; The salt (will be fed to the KDF in use).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><cite>bytes</cite> object with cleartext data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">agentcrypt</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-agentcrypt">agentcrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-agentcrypt.io">agentcrypt.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-agentcrypt.crypto">agentcrypt.crypto</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.9</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/api.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

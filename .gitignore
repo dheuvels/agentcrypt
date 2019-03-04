@@ -1,0 +1,10 @@
+/.idea
+/venv
+/_private
+/tests/temp/*
+/tests/keys/*
+/agentcrypt.egg-info
+/deb_dist
+*.pyc
+__pycache__
+agentcrypt-?.*.*.tar.gz

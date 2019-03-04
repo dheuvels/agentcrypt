@@ -1,0 +1,384 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>agentcrypt.io &#8212; agentcrypt 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="agentcrypt 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="agentcrypt" href="../agentcrypt.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for agentcrypt.io</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">raise_from</span>
+
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">binascii</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="k">import</span> <span class="n">StrictVersion</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">__version__</span><span class="p">,</span> <span class="n">COMPAT_VERSION</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">AgentCryptException</span><span class="p">,</span> <span class="n">NoContainerException</span>
+<span class="kn">from</span> <span class="nn">agentcrypt.crypto</span> <span class="k">import</span> <span class="n">Cipher</span>
+<span class="kn">from</span> <span class="nn">agentcrypt.crypto</span> <span class="k">import</span> <span class="n">SSHAgent</span>
+<span class="kn">from</span> <span class="nn">agentcrypt.py2compat</span> <span class="k">import</span> <span class="n">is_file</span><span class="p">,</span> <span class="n">try_truncate</span><span class="p">,</span> <span class="n">try_bytes</span>
+
+
+<div class="viewcode-block" id="Container"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container">[docs]</a><span class="k">class</span> <span class="nc">Container</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The public interface for encrypting and decrypting data.</span>
+<span class="sd">    :class:`Container` objects represent files or streams of encrypted data.</span>
+<span class="sd">    Instances of this class should be created with the help of the following static methods</span>
+
+<span class="sd">    - :func:`create`: Store encrypted data in a new container.</span>
+<span class="sd">    - :func:`load`: Load or modify an existing container.</span>
+
+<span class="sd">    :class:`Container` inherits from :class:`io.BytesIO`, thus it can be used as a stream.</span>
+<span class="sd">    Use the inherited methode :func:`getvalue` to access the contained data in decrypted form.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">io_handle</span><span class="p">,</span> <span class="n">ssh_key</span><span class="p">,</span> <span class="n">cipher</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">salt</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span> <span class="o">=</span> <span class="n">io_handle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssh_key</span> <span class="o">=</span> <span class="n">ssh_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span> <span class="o">=</span> <span class="n">cipher</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonce</span> <span class="o">=</span> <span class="n">nonce</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">salt</span> <span class="o">=</span> <span class="n">salt</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">data</span> <span class="ow">and</span> <span class="n">create_path</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_path</span> <span class="o">=</span> <span class="n">create_path</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">initial_bytes</span><span class="o">=</span><span class="n">try_bytes</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Container.create"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">write_target</span><span class="p">,</span> <span class="n">ssh_key_fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cipher_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a new container.</span>
+
+<span class="sd">        :param write_target: Either a filehandle or a path to the target container as string.</span>
+<span class="sd">                             If an instance of :class:`io.IOBase` is detected (`file` instance in Python2) the parameter</span>
+<span class="sd">                             will be treated as handle. Otherwise it is interpreted as path and used as the first</span>
+<span class="sd">                             parameter to ``open()``, to get a filehandle.</span>
+<span class="sd">        :param ssh_key_fp: The SHA256 fingerprint of the key to use for encryption. If set to ``None``, the first key</span>
+<span class="sd">                           found in the key-agent is used (use ``ssh-add -l -E sha256`` to get valid fingerprints).</span>
+<span class="sd">        :param cipher_name: The symmetric cipher to use. Must be one of the values from the cipher names published by</span>
+<span class="sd">                            :class:`.crypto.Cipher`. Use `None` to pick the strongest available cipher.</span>
+<span class="sd">        :param data: The initial data to write to the container. Additional data can be added with :func:`write` or</span>
+<span class="sd">                     :func:`writelines` after the container has been created.</span>
+<span class="sd">        :return: :class:`Container` instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="o">=</span><span class="kc">None</span>
+        <span class="k">if</span> <span class="n">is_file</span><span class="p">(</span><span class="n">write_target</span><span class="p">):</span>
+            <span class="n">io_handle</span> <span class="o">=</span> <span class="n">write_target</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">write_target</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">io_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ioe</span><span class="p">:</span>
+                <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Cannot write to &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">write_target</span><span class="p">)),</span> <span class="n">ioe</span><span class="p">)</span>
+
+        <span class="n">ssh_key</span> <span class="o">=</span> <span class="n">SSHAgent</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="n">ssh_key_fp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ssh_key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Key with fingerprint &#39;</span><span class="si">{}</span><span class="s2">&#39; not found in SSH agent.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ssh_key_fp</span><span class="p">))</span>
+        <span class="n">cipher</span> <span class="o">=</span> <span class="n">Cipher</span><span class="p">(</span><span class="n">cipher_name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">io_handle</span><span class="p">,</span> <span class="n">ssh_key</span><span class="p">,</span> <span class="n">cipher</span><span class="p">,</span> <span class="n">cipher</span><span class="o">.</span><span class="n">get_nonce</span><span class="p">,</span> <span class="n">cipher</span><span class="o">.</span><span class="n">get_salt</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">create_path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Container.load"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">rw_target</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads an existing container.</span>
+
+<span class="sd">        :param rw_target: A path (string) or a filehandle (:class:`io.IOBase` in Python3, `file` instance in Python2)</span>
+<span class="sd">                          to load from.</span>
+
+<span class="sd">        :return: :class:`Container` instance</span>
+
+<span class="sd">        Use the inherited methode :func:`getvalue` to access the contained data in decrypted form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">is_file</span><span class="p">(</span><span class="n">rw_target</span><span class="p">):</span>
+            <span class="n">io_handle</span> <span class="o">=</span> <span class="n">rw_target</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">io_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">rw_target</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ioe</span><span class="p">:</span>
+                <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Cannot open &#39;</span><span class="si">{}</span><span class="s2">&#39; in read-write mode.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rw_target</span><span class="p">)),</span> <span class="n">ioe</span><span class="p">)</span>
+
+        <span class="n">hname</span> <span class="o">=</span> <span class="n">io_handle</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="n">Container</span><span class="o">.</span><span class="n">_read_headers</span><span class="p">(</span><span class="n">io_handle</span><span class="p">)</span>
+            <span class="n">data_enc</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">io_handle</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ioe</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Cannot read from input stream &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">)),</span> <span class="n">ioe</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Cannot read Base64 data part from input stream &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">)),</span> <span class="n">err</span><span class="p">)</span>
+
+        <span class="n">ssh_key</span> <span class="o">=</span> <span class="n">SSHAgent</span><span class="o">.</span><span class="n">get_key</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">ssh_key_fp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ssh_key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;SSH key &#39;</span><span class="si">{}</span><span class="s2">&#39; is required for decrypting input stream &#39;</span><span class="si">{}</span><span class="s2">&#39;, but not in SSH agent.&quot;</span>
+                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">ssh_key_fp</span><span class="p">,</span> <span class="n">hname</span><span class="p">))</span>
+        <span class="n">ssh_sigb</span> <span class="o">=</span> <span class="n">ssh_key</span><span class="o">.</span><span class="n">get_ssh_signature_blob</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">nonce</span><span class="p">)</span>
+
+        <span class="n">cipher</span> <span class="o">=</span> <span class="n">Cipher</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">cipher_name</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">cipher</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">data_enc</span><span class="p">,</span> <span class="n">ssh_sigb</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">salt</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">io_handle</span><span class="p">,</span> <span class="n">ssh_key</span><span class="p">,</span> <span class="n">cipher</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">nonce</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">salt</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Container.save"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Alias for `close()`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Container.rekey"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.rekey">[docs]</a>    <span class="k">def</span> <span class="nf">rekey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cipher_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a new nonce, optionally with a different cipher an marks the container as `modified`, so that it will be</span>
+<span class="sd">        written, when :func:`flush` is called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cipher_name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span> <span class="o">=</span> <span class="n">Cipher</span><span class="p">(</span><span class="n">cipher_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonce</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span><span class="o">.</span><span class="n">get_nonce</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">salt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span><span class="o">.</span><span class="n">get_salt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Container.flush"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the container if it was modified.</span>
+<span class="sd">        The container is modified, if either..</span>
+
+<span class="sd">        - It was instantiated with the :func:`create` method and a ``data`` parameter that was not empty.</span>
+<span class="sd">        - Any of the methods has been called, that modify the content (:func:`write`, :func:`rekey`, :func:`clear`, ..).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">ssh_sigb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssh_key</span><span class="o">.</span><span class="n">get_ssh_signature_blob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nonce</span><span class="p">)</span>
+        <span class="n">data_enc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span> <span class="n">ssh_sigb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">salt</span><span class="p">)</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="n">ContainerHeaders</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ssh_key</span><span class="o">.</span><span class="n">get_sha256_fingerprint</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cipher</span><span class="o">.</span><span class="n">cipher_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonce</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">salt</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">try_truncate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">headers</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data_enc</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ioe</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Cannot write to output stream &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span> <span class="n">ioe</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Container.close"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the container, if it was modified and closes it.</span>
+<span class="sd">        There is a cleanup logic, that will delete empty containers, if all of the following conditions hold true:</span>
+
+<span class="sd">        - The container is new and empty (method :func:`create` was called with empty ``data`` parameter).</span>
+<span class="sd">        - A new file was created for it (parameter ``write_target`` was not an existing filehandle).</span>
+<span class="sd">        - The container has not been modified since it was created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_path</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_path</span><span class="p">)</span>  <span class="c1"># Don&#39;t keep newly created containers without content.</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">io_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">try_bytes</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">writelines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="n">blines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">line</span><span class="p">:</span> <span class="n">try_bytes</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="n">lines</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">blines</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changes</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Container.clear"><a class="viewcode-back" href="../../api.html#agentcrypt.io.Container.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience method for clearing the container contents. Same as ``truncate(0)`` and ``seek(0)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_read_headers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">io_hndl</span><span class="p">):</span>
+        <span class="n">hname</span> <span class="o">=</span> <span class="n">io_hndl</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">line_cnt</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="n">io_hndl</span><span class="o">.</span><span class="n">readline</span><span class="p">(</span><span class="mi">128</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">HEADLINE</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">HEADLINE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoContainerException</span><span class="p">(</span><span class="s2">&quot;Input stream &#39;</span><span class="si">{}</span><span class="s2">&#39; is not an AgentCrypt container. Expected header &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span>
+                                       <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">,</span> <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">HEADLINE</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_ver</span> <span class="o">=</span> <span class="n">StrictVersion</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">HEADLINE</span><span class="p">):]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">file_ver</span> <span class="o">&gt;</span> <span class="n">StrictVersion</span><span class="p">(</span><span class="n">COMPAT_VERSION</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Input stream &#39;</span><span class="si">{}</span><span class="s2">&#39; has unsupported version </span><span class="si">{}</span><span class="s2">.&quot;</span>
+                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">,</span> <span class="n">line_cnt</span><span class="p">,</span> <span class="n">file_ver</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ve</span><span class="p">:</span>
+            <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Input stream &#39;</span><span class="si">{}</span><span class="s2">&#39; line </span><span class="si">{:d}</span><span class="s2">: Malformed version string.&quot;</span>
+                                           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">,</span> <span class="n">line_cnt</span><span class="p">)),</span> <span class="n">ve</span><span class="p">)</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="n">ContainerHeaders</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">caption</span><span class="p">,</span> <span class="n">set_func</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">SSH_KEY_FP</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">set_ssh_key_fp</span><span class="p">),</span>
+                                  <span class="p">(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">CIPHER</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">set_cipher_name</span><span class="p">),</span>
+                                  <span class="p">(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">NONCE</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">set_nonce</span><span class="p">),</span>
+                                  <span class="p">(</span><span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">SALT</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">set_salt</span><span class="p">)]:</span>
+            <span class="n">line_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">io_hndl</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">caption</span><span class="p">)]</span> <span class="o">==</span> <span class="n">caption</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">caption</span><span class="p">):]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">set_func</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                    <span class="n">raise_from</span><span class="p">(</span><span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Input stream &#39;</span><span class="si">{}</span><span class="s2">&#39; line </span><span class="si">{:d}</span><span class="s2">: Invalid value &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span>
+                                                   <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">,</span> <span class="n">line_cnt</span><span class="p">,</span> <span class="n">value</span><span class="p">)),</span> <span class="n">ex</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AgentCryptException</span><span class="p">(</span><span class="s2">&quot;Input stream &#39;</span><span class="si">{}</span><span class="s2">&#39; line </span><span class="si">{:d}</span><span class="s2">: Expected &#39;</span><span class="si">{}</span><span class="s2">&lt;data&gt;&#39;.&quot;</span>
+                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hname</span><span class="p">,</span> <span class="n">line_cnt</span><span class="p">,</span> <span class="n">caption</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">headers</span></div>
+
+
+<span class="k">class</span> <span class="nc">ContainerHeaders</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">HEADLINE</span> <span class="o">=</span> <span class="s2">&quot;AgentCrypt: &quot;</span>
+    <span class="n">SSH_KEY_FP</span> <span class="o">=</span> <span class="s2">&quot;SSHKeyFP: &quot;</span>
+    <span class="n">CIPHER</span> <span class="o">=</span> <span class="s2">&quot;Cipher: &quot;</span>
+    <span class="n">NONCE</span> <span class="o">=</span> <span class="s2">&quot;Nonce: &quot;</span>
+    <span class="n">SALT</span> <span class="o">=</span> <span class="s2">&quot;Salt: &quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ssh_key_fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cipher_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nonce</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssh_key_fp</span> <span class="o">=</span> <span class="n">ssh_key_fp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cipher_name</span> <span class="o">=</span> <span class="n">cipher_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonce</span> <span class="o">=</span> <span class="n">nonce</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">salt</span> <span class="o">=</span> <span class="n">salt</span>
+
+    <span class="k">def</span> <span class="nf">set_ssh_key_fp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ssh_key_fp</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssh_key_fp</span> <span class="o">=</span> <span class="n">ssh_key_fp</span>
+
+    <span class="k">def</span> <span class="nf">set_cipher_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cipher_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cipher_name</span> <span class="o">=</span> <span class="n">cipher_name</span>
+
+    <span class="k">def</span> <span class="nf">set_nonce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nonce_b64</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonce</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">nonce_b64</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_salt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">salt_b64</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">salt</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">salt_b64</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">header_lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">HEADLINE</span> <span class="o">+</span> <span class="n">__version__</span><span class="p">,</span>
+            <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">SSH_KEY_FP</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssh_key_fp</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+            <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">CIPHER</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cipher_name</span><span class="p">,</span>
+            <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">NONCE</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nonce</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+            <span class="n">ContainerHeaders</span><span class="o">.</span><span class="n">SALT</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">salt</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">header_lines</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;enc&quot;</span><span class="p">:</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">with</span> <span class="n">Container</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">ssh_key_fp</span><span class="o">=</span><span class="n">fp</span><span class="p">)</span> <span class="k">as</span> <span class="n">cntr</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">:</span>
+                    <span class="n">cntr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;dec&quot;</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">Container</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">)</span> <span class="k">as</span> <span class="n">cntr</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">cntr</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Syntax:</span>
+<span class="s2">  </span><span class="si">{0}</span><span class="s2"> enc [fingerprint] &lt;&lt; data.txt &gt; container.enc</span>
+<span class="s2">  </span><span class="si">{0}</span><span class="s2"> dec &lt;&lt; container.enc</span>
+<span class="s2">          &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">agentcrypt</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.9</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
