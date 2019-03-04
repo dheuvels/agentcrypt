@@ -15,7 +15,7 @@ Load a key and make an SSH connection with agent-forwarding:
     local-machine ~ % ssh-add
     local-machine ~ % ssh -A remote-machine
 
-Use or create some `agentcrypt` enabled scripts on the remote host:
+Create some `agentcrypt` enabled scripts on the remote host:
 
 .. code-block:: python
 
@@ -27,27 +27,27 @@ Use or create some `agentcrypt` enabled scripts on the remote host:
         cntr.write(line)
     _EOF_
 
-    % cat << '_EOF_' > decryptor.py
+    remote-machine ~ % cat << '_EOF_' > decryptor.py
     import sys
     from agentcrypt.io import Container
     with Container.load(sys.stdin) as cntr:
         print(cntr.getvalue().decode())
     _EOF_
 
-Use the private key from the forwarded ssh-agent for crypto operations:
+Use the newly created scripts with keys from the local `ssh-agent`:
 
 .. code-block:: bash
 
-    % echo "secret data" |python encryptor.py > hushhush.dat
-    % python decryptor.py < hushhush.dat
+    remote-machine ~ % echo "secret data" |python encryptor.py > hushhush.dat
+    remote-machine ~ % python decryptor.py < hushhush.dat
     secret data
 
-Or via the ``main`` guard:
+Or via the ``main`` guard of the package:
 
 .. code-block:: bash
 
-    % echo "secret data" |python -magentcrypt.io enc > hushhush.dat
-    % python -magentcrypt.io dec < hushhush.dat
+    remote-machine ~ % echo "secret data" |python -magentcrypt.io enc > hushhush.dat
+    remote-machine ~ % python -magentcrypt.io dec < hushhush.dat
     secret data
 
 
@@ -71,4 +71,4 @@ Why another implementation?
 `Documentation`_
 ================
 
-.. _Documentation: sphinx/build/html/index.html
+.. _Documentation: docs/html/index.html

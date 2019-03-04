@@ -5,7 +5,7 @@ About
 How does it work?
 =================
 
-*AgentCrypt* encrypts or decrypts data with the help of `ssh private key` from an `ssh-agent`.
+*AgentCrypt* encrypts or decrypts data with the help of `ssh private keys` from an `ssh-agent`.
 
 - A public random value (`nonce`) is signed with the SSH key (``SSH_AGENTC_SIGN_REQUEST``) and then passed along
   with another random value (`salt`) to a key derivation function. This yields a `secret key`.
@@ -36,8 +36,6 @@ key limitations
   SSH uses PKCS#1 v1.5 padding for RSA signatures, which is deterministic. That's why RSA keys work for us (RSA-PSS
   wouldn't). For signatures with DSA and ECDSA keys there is a deterministic usage described in RFC-6979, but SSH
   doesn't implement it, thus these keys don't work for us.
-
-.. _security:
 
 Security
 ========

@@ -67,7 +67,7 @@ This time for Python (2+3).""",
             'version': ('setup.py', agentcrypt.__version__),
             'release': ('setup.py', agentcrypt.__version__),
             'source_dir': ('setup.py', 'sphinx'),
-            'build_dir': ('setup.py', 'sphinx/build'),
+            'build_dir': ('setup.py', 'docs'),
         }
     },
 

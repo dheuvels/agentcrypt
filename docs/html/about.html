@@ -47,7 +47,7 @@
 <h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="how-does-it-work">
 <h2>How does it work?<a class="headerlink" href="#how-does-it-work" title="Permalink to this headline">¶</a></h2>
-<p><em>AgentCrypt</em> encrypts or decrypts data with the help of <cite>ssh private key</cite> from an <cite>ssh-agent</cite>.</p>
+<p><em>AgentCrypt</em> encrypts or decrypts data with the help of <cite>ssh private keys</cite> from an <cite>ssh-agent</cite>.</p>
 <ul class="simple">
 <li>A public random value (<cite>nonce</cite>) is signed with the SSH key (<code class="docutils literal"><span class="pre">SSH_AGENTC_SIGN_REQUEST</span></code>) and then passed along
 with another random value (<cite>salt</cite>) to a key derivation function. This yields a <cite>secret key</cite>.</li>
@@ -80,7 +80,7 @@ doesn&#8217;t implement it, thus these keys don&#8217;t work for us.</p>
 </dl>
 </div>
 <div class="section" id="security">
-<span id="id1"></span><h2>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h2>
+<h2>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt>Probably the crunch question: <em>Is the signature a suitable means of deriving a symmetric key?</em></dt>
 <dd><p class="first">The signature can be used as secret, because it cannot be derived without the private key. Deriving the signature
