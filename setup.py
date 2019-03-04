@@ -15,10 +15,11 @@ class Clean(_clean, object):
     def run(self):
         super(Clean, self).run()
         for pkg in self.distribution.packages:
-            rm_dir = "{}.egg-info".format(pkg)
-            if os.path.isdir(rm_dir):
-                distutils.log.info("removing directory {}".format(rm_dir))
-                shutil.rmtree(rm_dir)
+            rm_dirs = ["{}.egg-info".format(pkg), "dist", "deb_dist"]
+            for rm_dir in rm_dirs:
+                if os.path.isdir(rm_dir):
+                    distutils.log.info("removing directory {}".format(rm_dir))
+                    shutil.rmtree(rm_dir)
 
             for rm_file in glob.glob("{}-?.*.*.tar.gz".format(pkg)):
                 distutils.log.info("removing file {}".format(rm_file))
@@ -67,7 +68,7 @@ This time for Python (2+3).""",
             'version': ('setup.py', agentcrypt.__version__),
             'release': ('setup.py', agentcrypt.__version__),
             'source_dir': ('setup.py', 'sphinx'),
-            'build_dir': ('setup.py', 'docs'),
+            'build_dir': ('setup.py', '_private'),
         }
     },
 

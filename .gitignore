@@ -1,6 +1,7 @@
 /.idea
 /venv
 /_private
+/sphinx/build
 /tests/temp/*
 /tests/keys/*
 /agentcrypt.egg-info

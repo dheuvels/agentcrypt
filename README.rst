@@ -71,4 +71,4 @@ Why another implementation?
 `Documentation`_
 ================
 
-.. _Documentation: docs/html/index.html
+.. _Documentation: https://code.heuvels.de/agentcrypt
