@@ -2,6 +2,8 @@
 /venv2.7
 /venv3.5
 /_private
+/build
+/dist
 /sphinx/build
 /tests/temp/*
 /tests/keys/*
