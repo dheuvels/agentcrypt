@@ -12,6 +12,7 @@ import glob
 from hashlib import sha256
 import os
 import paramiko
+import paramiko.ed25519key
 from paramiko.py3compat import b
 import random
 import re
@@ -114,6 +115,7 @@ class AgentEncryptionTests(unittest.TestCase):
         'rsa_1024': {'loader': paramiko.RSAKey, 'type': "rsa", 'bytes': "1024"},
         'rsa_2048': {'loader': paramiko.RSAKey, 'type': "rsa", 'bytes': "2048"},
         'rsa_4096': {'loader': paramiko.RSAKey, 'type': "rsa", 'bytes': "4096"},
+        'ed25519': {'loader': paramiko.ed25519key.Ed25519Key, 'type': 'ed25519', 'bytes': None},
     }
 
     @classmethod
@@ -140,15 +142,17 @@ class AgentEncryptionTests(unittest.TestCase):
             if not os.path.isfile(key_path):
                 key_type = AgentEncryptionTests.SSH_TEST_KEYS[key_name]['type']
                 key_bytes = AgentEncryptionTests.SSH_TEST_KEYS[key_name]['bytes']
-                p_hndl = subprocess.call(
-                    ["ssh-keygen",
+                subprocess_params = [
+                    "ssh-keygen",
                      "-t", key_type,
-                     "-b", key_bytes,
                      "-m", "RFC4716",
                      "-N", "",
                      "-C", "{}-{}".format(key_type, key_bytes),
-                     "-f", key_path]
-                )
+                     "-f", key_path
+                ]
+                if key_bytes:
+                    subprocess_params.append("-b", key_bytes)
+                subprocess.call(subprocess_params)
 
         agent = paramiko.Agent()
         keys = agent.get_keys()

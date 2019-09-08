@@ -1,5 +1,6 @@
 /.idea
-/venv
+/venv2.7
+/venv3.5
 /_private
 /sphinx/build
 /tests/temp/*

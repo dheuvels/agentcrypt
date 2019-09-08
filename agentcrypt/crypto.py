@@ -26,6 +26,8 @@ class AgentKey(paramiko.AgentKey):
     .. _`paramiko.agent.AgentKey`: http://docs.paramiko.org/en/2.4/api/agent.html#paramiko.agent.AgentKey
     """
 
+    _SUPPORTED_KEY_TYPES = ['ssh-rsa', 'ssh-ed25519']
+
     def __init__(self, agent, agent_key):
         super(AgentKey, self).__init__(agent, agent_key.asbytes())
 
@@ -70,9 +72,10 @@ class AgentKey(paramiko.AgentKey):
         sig_format = (msg_parts[0]).decode(errors='replace')
         sig_blob = msg_parts[1]
 
-        if sig_format != "ssh-rsa":
-            raise AgentCryptException("Got '{}' in SSH_AGENT_SIGN_RESPONSE from agent, but only 'ssh-rsa' is supported"
-                                      .format(sig_format))
+        if sig_format not in AgentKey._SUPPORTED_KEY_TYPES:
+            raise AgentCryptException("Unsupported '{}' key signature in SSH_AGENT_SIGN_RESPONSE response."
+                                      " Only the following key types are supported: '{}'"
+                                      .format(sig_format, "', '".join(AgentKey._SUPPORTED_KEY_TYPES)))
 
         return sig_blob
 

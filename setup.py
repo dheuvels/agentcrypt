@@ -59,7 +59,8 @@ This time for Python (2+3).""",
 
     version=agentcrypt.__version__,
     packages=find_packages(include=['agentcrypt', 'tests']),
-    tests_require = ['cryptography', 'paramiko', 'future', 'pytest'],
+    # ED25519 keys need paramiko >=2.2 (affects only the tests).
+    tests_require = ['cryptography', 'paramiko>=2.2', 'future', 'pytest'],
     zip_safe=True,
 
     command_options={

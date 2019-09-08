@@ -18,8 +18,7 @@ containing it, ensures that only the owner of the private SSH key can decrypt th
 Limitations
 ===========
 
-- The concept is not very future-proof. It only works with RSA keys and only because SSH uses PKCS1 v1.5 padding for
-  its signatures (see `key limitations`_).
+- *AgentCrypt* only works with RSA and ED25519 keys (see `key limitations`_).
 - *AgentCrypt* cannot encrypt with multiple keys, making it impossible to share an encrypted container
   or encrypt with an additional backup key. It shouldn't be hard to implement that, but so far there was no use for it.
 - Like all applications that rely on key-agents, *AgentCrypt* is susceptible to agent hijacking.
@@ -28,22 +27,32 @@ Limitations
 
 .. _key limitations:
 
-key limitations
-  Not all signatures are deterministic, i.e. do not result in the same output for the same input. This is, because
-  asymmetric encryption and signing needs a random component to be secure. In case of RSA this is called padding (not to
-  be confused with block cipher padding).
+Key limitations
+  Not all signatures are deterministic, i.e. do not result in the same output for the same input. This is, repeated runs
+  of the signature algorithm do not produce the same signature for the same input. The resulting values can of course be
+  validated with public-key, but *AgentCrypt* cannot use it as a symmetric key.
 
-  SSH uses PKCS#1 v1.5 padding for RSA signatures, which is deterministic. That's why RSA keys work for us (RSA-PSS
-  wouldn't). For signatures with DSA and ECDSA keys there is a deterministic usage described in RFC-6979, but SSH
-  doesn't implement it, thus these keys don't work for us.
+  Asymmetric encryption and signing needs a random component to be secure. In case of RSA this is called padding (not to
+  be confused with block cipher padding). SSH uses PKCS#1 v1.5 padding for RSA signatures, which is deterministic.
+  That's why RSA keys work for us (RSA-PSS wouldn't). ED25519 signatures are deterministic too.
+
+  For signatures with DSA and ECDSA keys there is a deterministic usage described in RFC-6979, but SSH doesn't implement
+  it, thus these keys don't work for us.
+
+  `DSA keys have been deprecated`_, so they should be replaced anyway. Whether to replace existing ECDSA keys depends on
+  your trust in the `NSA and your random number generator`_. They cannot be used with *AgentCrypt* in any case.
+
+..  _`DSA keys have been deprecated`: https://www.gentoo.org/support/news-items/2015-08-13-openssh-weak-keys.html
+..  _`NSA and your random number generator`: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm#Concerns
+
 
 Security
 ========
 
 Probably the crunch question: *Is the signature a suitable means of deriving a symmetric key?*
   The signature can be used as secret, because it cannot be derived without the private key. Deriving the signature
-  without the private key would be a successful “*signature forgery attack*”. If an efficient attack of this kind was
-  known, it would probably have made it into the news.
+  without the private key would be a successful “*signature forgery attack*”. If such an attack was known and efficient,
+  it would probably have made it into the news.
 
   On the other hand, using the signature as symmetric key, is not a mode of operation you will find in the PKCS#xx
   documents. And the fact that the one value that qualifies as signature cannot be deduced, doesn't necessarily mean it
