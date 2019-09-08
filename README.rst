@@ -68,7 +68,9 @@ Why another implementation?
   The ones I found on GitHub are either not Python or they rely on calls to external programs.
   I wanted a pure Python library, that runs with Versions 2.7 and 3.x.
 
-`Documentation`_
-================
+Documentation
+=============
 
-.. _Documentation: https://code.heuvels.de/agentcrypt
+`API Documentation`_
+
+.. _`API Documentation`: https://code.heuvels.de/agentcrypt

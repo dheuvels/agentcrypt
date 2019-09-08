@@ -25,13 +25,17 @@ class Clean(_clean, object):
                 distutils.log.info("removing file {}".format(rm_file))
                 os.unlink(rm_file)
 
+
+with open("README.rst", encoding='utf-8') as in_hdl:
+    long_description = in_hdl.read()
+
 #
 # Packaging that worked:
-#  Debian 9.8: python setup.py --command-packages=stdeb.command bdist_deb
-#              python3 setup.py --command-packages=stdeb.command bdist_deb
+#  Debian 9.8, 9.9: python setup.py --command-packages=stdeb.command bdist_deb
+#                   python3 setup.py --command-packages=stdeb.command bdist_deb
 #  Centos 7.6: python setup.py bdist_rpm
 #
-# Tests may fail before the library is on the path. To skip:
+# Tests may fail before the library is on the path. To skip tests:
 #  DEB_BUILD_OPTIONS=nocheck python[3] setup.py --command-packages=stdeb.command bdist_deb
 #
 setup(
@@ -39,7 +43,7 @@ setup(
     author_email='coding@heuvels.de',
 
     classifiers=[
-        'Development Status :: 4 - Beta'
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
@@ -56,10 +60,16 @@ setup(
     keywords=agentcrypt.__name__,
 
     description="Symmetric encryption using the ssh-agent",
-    long_description="""Yet another implementation of the idea, to use the SSH agent for symmetric encryption.
-This time for Python (2+3).""",
+    long_description=long_description,
+    long_description_content_type="text/x-rst",
 
-    install_requires=['cryptography', 'paramiko', 'future'],
+    install_requires=[
+        'future',
+        'PyYAML',
+        'cryptography',
+        'paramiko',
+        'future'
+    ],
     license="GNU General Public License v3",
 
     version=agentcrypt.__version__,

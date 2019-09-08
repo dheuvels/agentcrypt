@@ -13,11 +13,11 @@ from hashlib import sha256
 import os
 import paramiko
 from paramiko.py3compat import b
-from paramiko import SSHException  # Cannot catch as paramiko.SSHException or raise_from will fail in PY3.
+from paramiko import SSHException
 import struct
 
-from . import AgentCryptException
-from agentcrypt.py2compat import try_bytes
+from .exceptions import AgentCryptException
+from .py2compat import try_bytes
 
 
 class AgentKey(paramiko.AgentKey):

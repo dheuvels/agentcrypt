@@ -10,6 +10,7 @@ import sys
 Free floating, io related Python2 compatibility code.
 """
 
+
 def is_file(file_candidate):
     if sys.version_info[0] == 2:
         return isinstance(file_candidate, file)

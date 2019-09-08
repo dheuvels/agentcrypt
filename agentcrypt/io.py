@@ -10,11 +10,10 @@ from io import BytesIO
 import os
 import sys
 
-from . import __version__, COMPAT_VERSION
-from . import AgentCryptException, NoContainerException
-from agentcrypt.crypto import Cipher
-from agentcrypt.crypto import SSHAgent
-from agentcrypt.py2compat import is_file, try_truncate, try_bytes
+from agentcrypt import __version__, COMPAT_VERSION
+from .exceptions import AgentCryptException, NoContainerException
+from .crypto import Cipher, SSHAgent
+from .py2compat import is_file, try_truncate, try_bytes
 
 
 class Container(BytesIO):
@@ -282,7 +281,7 @@ if __name__ == "__main__":
             sys.exit(0)
     print("""
 Syntax:
-  {0} enc [fingerprint] << data.txt > container.enc
-  {0} dec << container.enc
+  {0} enc [fingerprint] < data.txt > container.enc
+  {0} dec < container.enc
           """.format(os.path.basename(sys.argv[0])))
     sys.exit(1)

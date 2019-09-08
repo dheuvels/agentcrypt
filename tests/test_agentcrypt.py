@@ -21,9 +21,9 @@ import subprocess
 import unittest
 import sys
 
-from agentcrypt import AgentCryptException
-from agentcrypt.crypto import Cipher
+from agentcrypt.exceptions import AgentCryptException
 from agentcrypt.io import Container
+from agentcrypt.crypto import Cipher
 
 
 # Generate text without requiring fortunes or py-lorem.
