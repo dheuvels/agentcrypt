@@ -26,7 +26,7 @@ class Clean(_clean, object):
                 os.unlink(rm_file)
 
 
-with open("README.rst", encoding='utf-8') as in_hdl:
+with open("README.rst") as in_hdl:
     long_description = in_hdl.read()
 
 #
@@ -42,6 +42,9 @@ setup(
     author="Dirk Heuvels",
     author_email='coding@heuvels.de',
 
+    url="https://github.com/dheuvels/agentcrypt",
+    download_url="https://github.com/dheuvels/agentcrypt/archive/v{}.tar.gz".format(agentcrypt.__version__),
+
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -55,8 +58,9 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    
+
     name=agentcrypt.__name__,
+    version=agentcrypt.__version__,
     keywords=agentcrypt.__name__,
 
     description="Symmetric encryption using the ssh-agent",
@@ -72,10 +76,9 @@ setup(
     ],
     license="GNU General Public License v3",
 
-    version=agentcrypt.__version__,
-    packages=find_packages(include=['agentcrypt', 'tests']),
+    packages=find_packages(include=['agentcrypt']),
     # ED25519 keys need paramiko >=2.2 (affects only the tests).
-    tests_require = ['cryptography', 'paramiko>=2.2', 'future', 'pytest'],
+    tests_require=['cryptography', 'paramiko>=2.2', 'future', 'pytest'],
     zip_safe=True,
 
     command_options={
