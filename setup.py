@@ -25,10 +25,15 @@ class Clean(_clean, object):
                 distutils.log.info("removing file {}".format(rm_file))
                 os.unlink(rm_file)
 
+#
 # Packaging that worked:
 #  Debian 9.8: python setup.py --command-packages=stdeb.command bdist_deb
 #              python3 setup.py --command-packages=stdeb.command bdist_deb
 #  Centos 7.6: python setup.py bdist_rpm
+#
+# Tests may fail before the library is on the path. To skip:
+#  DEB_BUILD_OPTIONS=nocheck python[3] setup.py --command-packages=stdeb.command bdist_deb
+#
 setup(
     author="Dirk Heuvels",
     author_email='coding@heuvels.de',
